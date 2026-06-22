@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  redis-a:
+    image: redis:7-alpine
+    container_name: typeahead-redis-a
+    ports:
+      - "6379:6379"
+    networks:
+      - typeahead-net
+    volumes:
+      - redis-a-data:/data
+
+  redis-b:
+    image: redis:7-alpine
+    container_name: typeahead-redis-b
+    ports:
+      - "6380:6379"
+    networks:
+      - typeahead-net
+    volumes:
+      - redis-b-data:/data
+
+  redis-c:
+    image: redis:7-alpine
+    container_name: typeahead-redis-c
+    ports:
+      - "6381:6379"
+    networks:
+      - typeahead-net
+    volumes:
+      - redis-c-data:/data
+
+networks:
+  typeahead-net:
+    driver: bridge
+
+volumes:
+  redis-a-data:
+  redis-b-data:
+  redis-c-data:
