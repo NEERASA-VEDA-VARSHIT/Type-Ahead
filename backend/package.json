@@ -6,7 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "generate-data": "tsx data/generate.ts",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/*.test.ts tests/**/*.test.ts"
   },
   "dependencies": {
     "fastify": "^4.28.0",
