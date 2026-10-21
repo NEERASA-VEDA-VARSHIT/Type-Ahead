@@ -32,6 +32,11 @@ export class CacheManager {
     console.log(`CacheManager: added Redis node "${name}" at ${host}:${port}`);
   }
 
+  addMockClient(name: string, client: any): void {
+    this.redisClients.set(name, client);
+    this.ring.addNode(name);
+  }
+
   async connectAll(): Promise<void> {
     const promises: Promise<void>[] = [];
     for (const [name, client] of this.redisClients) {
@@ -50,33 +55,45 @@ export class CacheManager {
     return this.ring;
   }
 
-  async getSuggestions(prefix: string, mode: TrendingMode = 'historical'): Promise<{ suggestions: Suggestion[]; cacheHit: boolean }> {
-    const nodeName = this.ring.getNode(prefix);
-    const redis = this.redisClients.get(nodeName);
-    if (!redis) {
-      return { suggestions: [], cacheHit: false };
+  async getSuggestions(
+    prefix: string,
+    mode: TrendingMode = 'historical'
+  ): Promise<{ suggestions: Suggestion[]; cacheHit: boolean }> {
+    let nodeName: string | null = null;
+    try {
+      nodeName = this.ring.getNode(prefix);
+    } catch {
+      // Ring empty or uninitialized
+      nodeName = null;
     }
 
+    const redis = nodeName ? this.redisClients.get(nodeName) : undefined;
     const cacheKey = `suggest:${prefix}:${mode}`;
 
-    try {
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        this.metrics.incrementCacheHits();
-        return { suggestions: JSON.parse(cached) as Suggestion[], cacheHit: true };
+    if (redis) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          this.metrics.incrementCacheHits();
+          return { suggestions: JSON.parse(cached) as Suggestion[], cacheHit: true };
+        }
+      } catch (err) {
+        console.warn(`CacheManager: Redis error on get from "${nodeName}": ${err}`);
       }
-    } catch (err) {
-      console.warn(`CacheManager: Redis error on get: ${err}`);
     }
 
     this.metrics.incrementCacheMisses();
 
+    // Resilient fallback to source-of-truth QueryStore
     const suggestions = this.queryStore.getFromPrefix(prefix, mode, 10);
 
-    try {
-      await redis!.setex(cacheKey, this.ttl, JSON.stringify(suggestions));
-    } catch (err) {
-      console.warn(`CacheManager: Redis error on set: ${err}`);
+    // Opportunistically repopulate cache if Redis client is available
+    if (redis) {
+      try {
+        await redis.setex(cacheKey, this.ttl, JSON.stringify(suggestions));
+      } catch (err) {
+        console.warn(`CacheManager: Redis error on set to "${nodeName}": ${err}`);
+      }
     }
 
     return { suggestions, cacheHit: false };
@@ -94,7 +111,7 @@ export class CacheManager {
   private async invalidatePrefix(prefix: string): Promise<void> {
     try {
       const nodeName = this.ring.getNode(prefix);
-      const redis = this.redisClients.get(nodeName);
+      const redis = nodeName ? this.redisClients.get(nodeName) : undefined;
       if (!redis) return;
       await redis.del(`suggest:${prefix}:historical`);
       await redis.del(`suggest:${prefix}:trending`);
@@ -105,8 +122,15 @@ export class CacheManager {
 
   async getCacheDebug(prefix: string): Promise<CacheDebugInfo> {
     const normalized = prefix.toLowerCase().trim();
-    const nodeName = this.ring.getNode(normalized);
-    const hashValue = ConsistentHashRing.hashKey(normalized);
+    let nodeName = 'unassigned';
+    let hashValue = 0n;
+    try {
+      nodeName = this.ring.getNode(normalized);
+      hashValue = ConsistentHashRing.hashKey(normalized);
+    } catch {
+      // Empty ring fallback
+    }
+
     const redis = this.redisClients.get(nodeName);
     let cacheHit = false;
     if (redis) {
@@ -131,7 +155,9 @@ export class CacheManager {
   async disconnectAll(): Promise<void> {
     const promises: Promise<unknown>[] = [];
     for (const client of this.redisClients.values()) {
-      promises.push(client.quit().catch(() => {}));
+      if (typeof client.quit === 'function') {
+        promises.push(client.quit().catch(() => {}));
+      }
     }
     await Promise.allSettled(promises);
   }

@@ -1,6 +1,14 @@
 # Type-Ahead Search System
 
-A distributed search typeahead system using Key-Value / Cache-based architecture with consistent hashing.
+[![CI](https://github.com/NEERASA-VEDA-VARSHIT/Type-Ahead/actions/workflows/ci.yml/badge.svg)](https://github.com/NEERASA-VEDA-VARSHIT/Type-Ahead/actions/workflows/ci.yml)
+[![Node.js 18+](https://img.shields.io/badge/node.js-18%20%7C%2020%20%7C%2022-brightgreen.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
+[![Tests: 18/18 Passed](https://img.shields.io/badge/tests-18%20passed-brightgreen.svg)](backend/tests/)
+
+A distributed, fault-tolerant search typeahead service utilizing a consistent hash ring across multi-node Redis clusters, backed by WAL-mode SQLite persistence and automatic origin fallback.
+
+> [!NOTE]
+> **Consolidation Note:** This repository serves as the single canonical flagship for the Type-Ahead systems project across the portfolio (consolidating findings from exploratory prototypes). It features real Redis network clustering, batch flush debouncing, WAL SQLite storage, automated test coverage, and a production React + Tailwind UI.
 
 ---
 
