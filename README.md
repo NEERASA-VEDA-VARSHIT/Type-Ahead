@@ -1,7 +1,7 @@
 # Type-Ahead Search System
 
 [![CI](https://github.com/NEERASA-VEDA-VARSHIT/Type-Ahead/actions/workflows/ci.yml/badge.svg)](https://github.com/NEERASA-VEDA-VARSHIT/Type-Ahead/actions/workflows/ci.yml)
-[![Node.js 18+](https://img.shields.io/badge/node.js-18%20%7C%2020%20%7C%2022-brightgreen.svg)](https://nodejs.org/)
+[![Node.js 18+](https://img.shields.io/badge/node.js-20%20%7C%2022-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
 [![Tests: 18/18 Passed](https://img.shields.io/badge/tests-18%20passed-brightgreen.svg)](backend/tests/)
 
